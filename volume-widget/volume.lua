@@ -11,6 +11,7 @@ local awful = require("awful")
 local wibox = require("wibox")
 local spawn = require("awful.spawn")
 local gears = require("gears")
+local naughty = require("naughty")
 local beautiful = require("beautiful")
 local watch = require("awful.widget.watch")
 local utils = require("awesome-wm-widgets.volume-widget.utils")
@@ -168,14 +169,25 @@ local function worker(user_args)
     local refresh_rate = args.refresh_rate or 1
     local step = args.step or 5
     local device = args.device or 'pulse'
+    local show_notification = args.notification or true
+    local notification = nil
 
     if widget_types[widget_type] == nil then
         volume.widget = widget_types['icon_and_text'].get_widget(args.icon_and_text_args)
     else
         volume.widget = widget_types[widget_type].get_widget(args)
     end
+    
+    local show_notification = function(text)
+        naughty.destroy(notification)
+        notification = naughty.notify({
+            title = "Volume",
+            text = text,
+            timeout = 1,
+        })
+    end
 
-    local function update_graphic(widget, stdout)
+    local function update_graphic(widget, stdout, by_user)
         local mute = string.match(stdout, "%[(o%D%D?)%]")   -- \[(o\D\D?)\] - [on] or [off]
         if mute == 'off' then widget:mute()
         elseif mute == 'on' then widget:unmute()
@@ -183,6 +195,14 @@ local function worker(user_args)
         local volume_level = string.match(stdout, "(%d?%d?%d)%%") -- (\d?\d?\d)\%)
         volume_level = string.format("% 3d", volume_level)
         widget:set_volume_level(volume_level)
+
+        if show_notification  and by_user then
+            if mute=='on' then
+                show_notification("muted")
+            else
+                show_notification(string.format("%s %%", volume_level))
+            end
+        end
     end
 
     function volume:inc(s)
@@ -220,7 +240,7 @@ local function worker(user_args)
             )
     )
 
-    watch(GET_VOLUME_CMD(device), refresh_rate, update_graphic, volume.widget)
+    watch(GET_VOLUME_CMD(device), refresh_rate, function(widget, stdout) update_graphic(widget, stdout, false) end, volume.widget)
 
     return volume.widget
 end

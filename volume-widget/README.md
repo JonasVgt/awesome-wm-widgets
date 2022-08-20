@@ -60,6 +60,7 @@ It is possible to customize the widget by providing a table with all or some of 
 | `step` | `5` | How much the volume is raised or lowered at once (in %) |
 | `widget_type`| `icon_and_text`| Widget type, one of `horizontal_bar`, `vertical_bar`, `icon`, `icon_and_text`, `arc` |
 | `device` | `pulse` | Select the device name to control |
+| `notification` | true | Display a notification when volume is changed |
 
 Depends on the chosen widget type add parameters from the corresponding section below:
 
