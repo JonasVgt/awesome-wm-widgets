@@ -178,7 +178,7 @@ local function worker(user_args)
         volume.widget = widget_types[widget_type].get_widget(args)
     end
     
-    local show_notification = function(text)
+    local notify = function(text)
         naughty.destroy(notification)
         notification = naughty.notify({
             title = "Volume",
@@ -196,25 +196,25 @@ local function worker(user_args)
         volume_level = string.format("% 3d", volume_level)
         widget:set_volume_level(volume_level)
 
-        if show_notification  and by_user then
-            if mute=='on' then
-                show_notification("muted")
+        if show_notification and by_user then
+            if mute=='off' then
+                notify("muted")
             else
-                show_notification(string.format("%s %%", volume_level))
+                notify(string.format("%s %%", volume_level))
             end
         end
     end
 
     function volume:inc(s)
-        spawn.easy_async(INC_VOLUME_CMD(device, s or step), function(stdout) update_graphic(volume.widget, stdout) end)
+        spawn.easy_async(INC_VOLUME_CMD(device, s or step), function(stdout) update_graphic(volume.widget, stdout, true) end)
     end
 
     function volume:dec(s)
-        spawn.easy_async(DEC_VOLUME_CMD(device, s or step), function(stdout) update_graphic(volume.widget, stdout) end)
+        spawn.easy_async(DEC_VOLUME_CMD(device, s or step), function(stdout) update_graphic(volume.widget, stdout, true) end)
     end
 
     function volume:toggle()
-        spawn.easy_async(TOG_VOLUME_CMD(device), function(stdout) update_graphic(volume.widget, stdout) end)
+        spawn.easy_async(TOG_VOLUME_CMD(device), function(stdout) update_graphic(volume.widget, stdout, true) end)
     end
 
     function volume:mixer()
