@@ -25,27 +25,29 @@ local dec_brightness_cmd
 local brightness_widget = {}
 
 local function show_warning(message)
-	naughty.notify({
-		preset = naughty.config.presets.critical,
-		title = "Brightness Widget",
-		text = message,
-	})
+    naughty.notify({
+        preset = naughty.config.presets.critical,
+        title = "Brightness Widget",
+        text = message,
+    })
 end
 
 local function worker(user_args)
-	  local args = user_args or {}
-
+    local args = user_args or {}
+    
     local type = args.type or 'arc' -- arc or icon_and_text
     local path_to_icon = args.path_to_icon or ICON_DIR .. 'brightness.svg'
     local font = args.font or beautiful.font
     local timeout = args.timeout or 100
-
+    
     local program = args.program or 'light'
     local step = args.step or 5
     local base = args.base or 20
     local current_level = 0 -- current brightness value
     local tooltip = args.tooltip or false
     local percentage = args.percentage or false
+    local show_notification = args.notification or true
+    local notification = nil
     if program == 'light' then
         get_brightness_cmd = 'light -G'
         set_brightness_cmd = 'light -S %d' -- <level>
@@ -57,10 +59,10 @@ local function worker(user_args)
         inc_brightness_cmd = 'xbacklight -inc ' .. step
         dec_brightness_cmd = 'xbacklight -dec ' .. step
     elseif program == 'brightnessctl' then
-  	get_brightness_cmd = "brightnessctl get"
-		set_brightness_cmd = "brightnessctl set %d%%" -- <level>
-		inc_brightness_cmd = "brightnessctl set +" .. step .. "%"
-		dec_brightness_cmd = "brightnessctl set " .. step .. "-%"  
+        get_brightness_cmd = "brightnessctl get"
+        set_brightness_cmd = "brightnessctl set %d%%" -- <level>
+        inc_brightness_cmd = "brightnessctl set +" .. step .. "%"
+        dec_brightness_cmd = "brightnessctl set " .. step .. "-%"
     else
         show_warning(program .. " command is not supported by the widget")
         return
@@ -117,7 +119,17 @@ local function worker(user_args)
     else
         show_warning(type .. " type is not supported by the widget")
         return
+        
+    end
 
+    local show_notification = function(level)
+        naughty.destroy(notification)
+        notification = naughty.notify({
+            title = "Brightness",
+            text = string.format("%i %%", math.floor(level)),
+            timeout = 1,
+            icon = ICON_DIR .. 'brightness.svg'
+        })
     end
 
     local update_widget = function(widget, stdout, _, _, _)
@@ -131,6 +143,9 @@ local function worker(user_args)
         spawn.easy_async(string.format(set_brightness_cmd, value), function()
             spawn.easy_async(get_brightness_cmd, function(out)
                 update_widget(brightness_widget.widget, out)
+                if show_notification then
+                    show_notification(out)
+                end
             end)
         end)
     end
@@ -154,6 +169,9 @@ local function worker(user_args)
         spawn.easy_async(inc_brightness_cmd, function()
             spawn.easy_async(get_brightness_cmd, function(out)
                 update_widget(brightness_widget.widget, out)
+                show_notification(out)
+                if show_notification then
+                end
             end)
         end)
     end
@@ -161,6 +179,9 @@ local function worker(user_args)
         spawn.easy_async(dec_brightness_cmd, function()
             spawn.easy_async(get_brightness_cmd, function(out)
                 update_widget(brightness_widget.widget, out)
+                if show_notification then
+                    show_notification(out)
+                end
             end)
         end)
     end
